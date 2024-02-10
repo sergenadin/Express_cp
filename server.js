@@ -1,56 +1,42 @@
-const express = require("express");
+const express = require('express');
 const app = express();
-const path = require("path"); // Add this line
 
-// Set the views directory and view engine
-app.set("views", path.join(__dirname, "views"));
-app.set("view engine", "ejs");
+// Middleware pour servir les fichiers statiques du dossier 'public'
+app.use(express.static('public'));
 
-// Serve static files (CSS, images, etc.)
-app.use(express.static(path.join(__dirname, "public")));
+// Middleware personnalisé pour vérifier l'heure de la requête
+const checkWorkingHours = (req, res, next) => {
+	const date = new Date();
+	const dayOfWeek = date.getDay(); // 0 (dimanche) à 6 (samedi)
+	const hourOfDay = date.getHours(); // 0 à 23
 
-function checkWorkingHours(req, res, next) {
-	const now = new Date();
-	const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
-	const currentHour = now.getHours();
-
-	// Check if it's a weekday (Monday to Friday) and between 9 AM and 5 PM
-	if (
-		dayOfWeek >= 1 &&
-		dayOfWeek <= 5 &&
-		currentHour >= 9 &&
-		currentHour < 17
-	) {
-		// Continue with the request if it's within working hours
-		next();
+	// Vérifier si c'est un jour de semaine (lundi à vendredi) et si l'heure est entre 9h et 17h
+	if (dayOfWeek >= 1 && dayOfWeek <= 5 && hourOfDay >= 9 && hourOfDay < 17) {
+		next(); // Continuer vers la route suivante
 	} else {
-		// Return a response indicating that the application is closed
-		res
-			.status(403)
-			.send(
-				"The web application is only available during working hours (Monday to Friday, 9 AM to 5 PM)."
-			);
+		res.send('Désolé, cette application est disponible uniquement pendant les heures de travail (du lundi au vendredi, de 9h à 17h).');
 	}
-}
+};
 
-// Apply the custom middleware to all routes
-app.use(checkWorkingHours);
+// Configuration des vues avec EJS (optionnel)
+app.set('view engine', 'ejs');
+app.set('views', './views');
 
-// Define routes
-app.get("/", (req, res) => {
-	res.render("home");
+// Routes
+app.get('/', checkWorkingHours, (req, res) => {
+	res.render('home');
 });
 
-app.get("/service", (req, res) => {
-	res.render("service");
+app.get('/services', checkWorkingHours, (req, res) => {
+	res.render('services');
 });
 
-app.get("/contact", (req, res) => {
-	res.render("contact");
+app.get('/contact', checkWorkingHours, (req, res) => {
+	res.render('contact');
 });
 
-// Start the server
-const port = process.env.PORT || 4000;
-app.listen(port, () => {
-	console.log(`Server is running on port ${port}`);
+// Démarrer le serveur
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+	console.log(`Serveur Express démarré sur le port ${PORT}`);
 });
